@@ -92,17 +92,36 @@ OPENAI_API_KEY=your_api_key_here
 
 ### Usage
 
-Run the application:
-```bash
-python main.py
+1. Set up your OpenAI API key in the `.env` file:
+```
+OPENAI_API_KEY=your_api_key_here
 ```
 
-Or use the FastAPI server:
+2. Run the FastAPI server:
 ```bash
-uvicorn main:app --reload
+python -m uvicorn main:app --reload
 ```
 
-Navigate to http://127.0.0.1:8000 in your browser to access the web interface.
+3. Navigate to http://127.0.0.1:8000 in your browser to access the web interface.
+
+### Web Interface
+
+The web interface allows you to:
+- Upload a LaTeX resume file (.tex)
+- Enter job description details including title and requirements
+- Add special instructions for optimization
+- Submit for processing
+- View and download the optimized resume
+
+### API Endpoints
+
+The application exposes the following API endpoints:
+
+- `GET /` - Web interface home page
+- `POST /api/optimize` - Optimize a resume based on job description
+- `GET /api/download/{resume_id}` - Download an optimized resume
+- `POST /api/feedback` - Submit feedback on optimization
+- `GET /api/templates` - List available resume templates
 
 ## Development
 

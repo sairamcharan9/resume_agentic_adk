@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Resume Optimizer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#3b82f6',
+                        secondary: '#10b981',
+                        accent: '#8b5cf6',
+                        dark: '#1e293b',
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <nav class="bg-dark text-white shadow-lg">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex items-center">
+                    <a href="/" class="flex-shrink-0 flex items-center">
+                        <span class="text-xl font-bold">Resume Optimizer</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <main class="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+        <div class="bg-white shadow overflow-hidden sm:rounded-lg mb-8">
+            <div class="px-4 py-5 sm:px-6">
+                <h2 class="text-2xl font-bold leading-7 text-gray-900">Resume Optimizer</h2>
+                <p class="mt-1 max-w-2xl text-sm text-gray-500">
+                    Optimize your resume for Computer Science, Data Science, and AI/ML positions based on job descriptions.
+                </p>
+            </div>
+            <div class="border-t border-gray-200">
+                <div class="px-4 py-5 sm:p-6">
+                    <form id="resumeForm" class="space-y-6" action="/api/optimize" method="post" enctype="multipart/form-data">
+                        <div class="grid grid-cols-1 gap-6 sm:grid-cols-2">
+                            <div>
+                                <h3 class="text-lg font-medium leading-6 text-gray-900">Resume</h3>
+                                <div class="mt-4 space-y-4">
+                                    <div>
+                                        <label for="resumeUpload" class="block text-sm font-medium text-gray-700">
+                                            Upload Resume (LaTeX format)
+                                        </label>
+                                        <div class="mt-1 flex items-center">
+                                            <input type="file" id="resumeUpload" name="resume_file" accept=".tex"
+                                                class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-primary file:text-white hover:file:bg-blue-600">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div>
+                                <h3 class="text-lg font-medium leading-6 text-gray-900">Job Description</h3>
+                                <div class="mt-4 space-y-4">
+                                    <div>
+                                        <label for="jobTitle" class="block text-sm font-medium text-gray-700">
+                                            Job Title
+                                        </label>
+                                        <div class="mt-1">
+                                            <input type="text" id="jobTitle" name="jobTitle"
+                                                class="shadow-sm focus:ring-primary focus:border-primary block w-full sm:text-sm border-gray-300 rounded-md"
+                                                placeholder="Senior Software Engineer">
+                                        </div>
+                                    </div>
+                                    
+                                    <div>
+                                        <label for="jobDescription" class="block text-sm font-medium text-gray-700">
+                                            Job Description
+                                        </label>
+                                        <div class="mt-1">
+                                            <textarea id="jobDescription" name="jobDescription" rows="5"
+                                                class="shadow-sm focus:ring-primary focus:border-primary block w-full sm:text-sm border-gray-300 rounded-md"
+                                                placeholder="We are looking for a skilled software engineer with experience in..."></textarea>
+                                        </div>
+                                    </div>
+                                    
+                                    <div>
+                                        <label for="jobRequirements" class="block text-sm font-medium text-gray-700">
+                                            Job Requirements
+                                        </label>
+                                        <div class="mt-1">
+                                            <textarea id="jobRequirements" name="jobRequirements" rows="5"
+                                                class="shadow-sm focus:ring-primary focus:border-primary block w-full sm:text-sm border-gray-300 rounded-md"
+                                                placeholder="5+ years of experience with JavaScript&#10;Experience with React and Node.js&#10;Bachelor's degree in Computer Science"></textarea>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div>
+                            <h3 class="text-lg font-medium leading-6 text-gray-900">Special Instructions (Optional)</h3>
+                            <div class="mt-4">
+                                <label for="specialInstructions" class="block text-sm font-medium text-gray-700">
+                                    Additional Instructions
+                                </label>
+                                <div class="mt-1">
+                                    <textarea id="specialInstructions" name="special_instructions" rows="3"
+                                        class="shadow-sm focus:ring-primary focus:border-primary block w-full sm:text-sm border-gray-300 rounded-md"
+                                        placeholder="Any specific areas you want to focus on or highlight"></textarea>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="flex justify-end">
+                            <button type="submit"
+                                class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-primary hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary">
+                                Optimize Resume
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer class="bg-dark text-white py-6">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <p class="text-center">&copy; 2025 Resume Optimizer. All rights reserved.</p>
+        </div>
+    </footer>
+</body>
+</html>
