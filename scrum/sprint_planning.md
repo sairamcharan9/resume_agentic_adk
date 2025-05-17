@@ -44,9 +44,9 @@ The Resume Optimizer (RO) is a specialized application that optimizes LaTeX resu
 10. [ ] Create end-to-end test for basic functionality
 
 ### Component Division for MVP
-- **Developer 1**: Items 1, 3, 6, 10
-- **Developer 2**: Items 2, 4, 7, 9
-- **Collaborative**: Items 5, 8
+- **Developer 1**: Frontend interface, API endpoints, LaTeX parsing, LaTeX generation, feedback system
+- **Developer 2**: Job analysis, resume optimization algorithms, ATS analysis, core optimization engines
+- **Collaborative**: Architecture decisions, integration testing, documentation
 
 ## Sprint 1 (Current Sprint)
 
@@ -80,9 +80,9 @@ Set up the basic infrastructure and implement core resume optimization functiona
 
 **Tasks:**
 - [ ] Implement job description input form
-- [ ] Develop keyword extraction from job descriptions
-- [ ] Create domain-specific analyzers (CS/DS/AI-ML)
-- [ ] Unit tests for analyzer functionality
+- [x] Develop keyword extraction from job descriptions
+- [x] Create domain-specific analyzers (CS/DS/AI-ML)
+- [x] Unit tests for analyzer functionality
 
 **Acceptance Criteria:**
 - System extracts relevant skills, requirements, and keywords from job descriptions
@@ -97,17 +97,17 @@ Set up the basic infrastructure and implement core resume optimization functiona
 **So that** it better matches the requirements
 
 **Tasks:**
-- [ ] Implement optimization algorithms
-- [ ] Create prompts for AI-powered content enhancement
-- [ ] Develop logic for maintaining factual accuracy
-- [ ] Unit tests for optimizer functionality
+- [x] Implement optimization algorithms
+- [x] Create prompts for AI-powered content enhancement
+- [x] Develop logic for maintaining factual accuracy
+- [x] Unit tests for optimizer functionality
 
 **Acceptance Criteria:**
 - Optimized resume maintains factual accuracy
 - Keywords from job descriptions are appropriately incorporated
 - Content is professionally phrased and relevant
 
-**Assigned to:** Shared (Both developers collaborate)
+**Assigned to:** Developer 2 (Core optimization algorithms)
 
 ## Sprint 2 (Next Sprint)
 
@@ -150,7 +150,12 @@ Set up the basic infrastructure and implement core resume optimization functiona
 - [ ] Implement feedback analysis for system improvement
 - [ ] Unit tests for feedback system
 
-**Assigned to:** Shared (Both developers collaborate)
+**Acceptance Criteria:**
+- Feedback system captures key metrics
+- User can rate effectiveness of optimization
+- System stores feedback for analysis
+
+**Assigned to:** Developer 1
 
 ## Sprint 3 (Future Sprint)
 

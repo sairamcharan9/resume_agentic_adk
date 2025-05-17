@@ -61,7 +61,7 @@ parsed_resume = await parser.parse("/path/to/resume.tex")
 
 ### Analyzer Component Interface
 
-**Owner:** Developer 2
+**Owner:** Developer 2 ✅ [IMPLEMENTED]
 
 **Input:**
 - Job title (string)
@@ -97,7 +97,7 @@ job_analysis = await analyzer.analyze(
 
 ### Optimizer Component Interface
 
-**Owner:** Shared (Both Developers)
+**Owner:** Developer 2 ✅ [IMPLEMENTED]
 
 **Input:**
 - Parsed resume (Dict from Parser Component)
@@ -161,7 +161,7 @@ output_path = await generator.generate(
 
 ### ATS Component Interface
 
-**Owner:** Developer 2
+**Owner:** Developer 2 ✅ [IMPLEMENTED]
 
 **Input:**
 - Resume file path (Path)
@@ -195,7 +195,7 @@ ats_results = await analyzer.analyze(
 
 ### Feedback Component Interface
 
-**Owner:** Shared (Both Developers)
+**Owner:** Developer 1
 
 **Input:**
 - Feedback data (Dict with ratings, comments, etc.)
@@ -223,10 +223,20 @@ result = await processor.process_feedback({
 })
 ```
 
+## UI Component Interface
+
+**Owner:** Developer 1
+
+**Responsibility:**
+- Web interface implementation
+- Form handling and validation
+- User experience design
+- Frontend styling and responsiveness
+
 ## REST API Endpoints
 
 ### POST /api/optimize
-- **Owner:** Developer 2
+- **Owner:** Shared (Developer 1 implements, Developer 2 assists with integration)
 - **Description:** Main endpoint to optimize a resume
 - **Consumes:** multipart/form-data
 - **Parameters:**
@@ -243,7 +253,7 @@ result = await processor.process_feedback({
 - **Produces:** application/x-tex
 
 ### POST /api/feedback
-- **Owner:** Shared
+- **Owner:** Developer 1
 - **Description:** Submit feedback on optimization
 - **Consumes:** application/json
 - **Produces:** application/json

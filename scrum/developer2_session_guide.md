@@ -13,9 +13,11 @@
 ### 2. Component Ownership Reminder
 As Developer 2, you own these components:
 - Job Description Analyzer
-- ATS Analyzer
-- FastAPI Endpoints
-- Frontend Components for Job Analysis/ATS
+- Resume Optimization Algorithms
+- ATS Analyzer and Scoring
+- Core Optimization Engine
+- AI Integration for Content Enhancement
+- Performance Optimization
 
 ### 3. API Boundaries
 Ensure you understand the current interfaces between your components and others:
