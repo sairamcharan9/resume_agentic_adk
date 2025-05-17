@@ -187,7 +187,26 @@ Set up the basic infrastructure and implement core resume optimization functiona
 
 **Assigned to:** Developer 2
 
-#### User Story 9: Deployment and Documentation
+#### User Story 9: CI/CD and Testing Infrastructure
+**As a** developer
+**I want to** ensure code quality through automated testing
+**So that** we can maintain reliability and catch issues early
+
+**Tasks:**
+- [x] Set up GitHub Actions for automated testing
+- [x] Implement test coverage reporting
+- [x] Configure multi-environment testing (Python 3.8, 3.9)
+- [x] Create pytest configuration for consistent test execution
+
+**Acceptance Criteria:**
+- Tests run automatically on code pushes and pull requests
+- Code coverage reports are generated and accessible
+- Tests run across multiple Python versions
+- Test results are clearly reported with actionable feedback
+
+**Assigned to:** Developer 2
+
+#### User Story 10: Deployment and Documentation
 **As a** developer
 **I want to** deploy the application and document it
 **So that** users can access it and understand how to use it
