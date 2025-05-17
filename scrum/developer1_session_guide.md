@@ -12,9 +12,12 @@
 
 ### 2. Component Ownership Reminder
 As Developer 1, you own these components:
+- Frontend Web Interface (HTML/CSS/JS)
+- API Endpoints and Routes
 - LaTeX Resume Parser
 - LaTeX Generator
-- Frontend Components for Parser/Generator
+- Feedback Collection and Processing
+- Frontend-Backend Integration
 
 ### 3. API Boundaries
 Ensure you understand the current interfaces between your components and others:

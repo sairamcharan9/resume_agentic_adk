@@ -26,6 +26,37 @@ This journal documents important architectural decisions, design choices, and te
 
 ### Sprint 1
 
+[2025-05-18] Job Analysis and AI Integration Design - Developer 2
+
+## Context
+Needed to design and implement job description analysis, keyword extraction, and AI integration for resume optimization with clear boundaries between components while maintaining high cohesion within each module.
+
+## Options Considered
+1. Single, large job analyzer class combining all functionality
+2. Separate specialized modules with focused responsibilities
+3. Integration with third-party job analysis APIs
+4. Custom NLP pipeline without LangChain
+
+## Decision
+Implemented three specialized modules:
+- JobDescriptionAnalyzer: For analyzing job descriptions and extracting requirements
+- KeywordExtractor: For sophisticated keyword extraction using multiple techniques
+- AIManager: For LangChain integration and AI-driven optimization
+
+## Reasoning
+- Separation of concerns allows each module to focus on its specialty
+- LangChain provides robust abstraction over the AI model APIs
+- TF-IDF and spaCy provide proven, established NLP capabilities
+- Domain-specific knowledge bases enhance extraction quality
+- Comprehensive unit tests ensure reliability
+
+## Consequences
+- Highly maintainable modules with clear responsibilities
+- Enhanced testability with mocked dependencies
+- Improved performance through specialized algorithms
+- Easier integration of future AI models or NLP techniques
+- Reduced dependency on OpenAI by keeping core extraction logic separate
+
 [2025-05-17] Project Architecture Decision - Team
 
 ## Context
