@@ -61,7 +61,7 @@ parsed_resume = await parser.parse("/path/to/resume.tex")
 
 ### Analyzer Component Interface
 
-**Owner:** Developer 2
+**Owner:** Developer 2 ✅ [IMPLEMENTED]
 
 **Input:**
 - Job title (string)
@@ -97,7 +97,7 @@ job_analysis = await analyzer.analyze(
 
 ### Optimizer Component Interface
 
-**Owner:** Developer 2
+**Owner:** Developer 2 ✅ [IMPLEMENTED]
 
 **Input:**
 - Parsed resume (Dict from Parser Component)
@@ -161,7 +161,7 @@ output_path = await generator.generate(
 
 ### ATS Component Interface
 
-**Owner:** Developer 2
+**Owner:** Developer 2 ✅ [IMPLEMENTED]
 
 **Input:**
 - Resume file path (Path)
