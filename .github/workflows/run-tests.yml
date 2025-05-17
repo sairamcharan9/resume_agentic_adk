@@ -44,25 +44,24 @@ jobs:
     - name: Add project root to PYTHONPATH
       run: echo "PYTHONPATH=$PYTHONPATH:$(pwd)" >> $GITHUB_ENV
         
-    - name: Run individual tests
+    - name: Run tests with pytest and coverage
       env:
         OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
       run: |
-        # Run tests individually to identify which ones are failing
-        echo "Running Job Analyzer tests..."
-        python -m unittest tests/test_job_analyzer.py || echo "Job Analyzer tests failed but continuing..."
+        # Run tests with pytest and generate coverage report
+        pytest tests/ -v --cov=src --cov-report=xml --cov-report=term
         
-        echo "\nRunning Keyword Extraction tests..."
-        python -m unittest tests/test_keyword_extraction.py || echo "Keyword Extraction tests failed but continuing..."
+    - name: Generate coverage HTML report
+      if: success()
+      run: |
+        python -m pytest tests/ --cov=src --cov-report=html
         
-        echo "\nRunning AI Integration tests..."
-        python -m unittest tests/test_ai_integration.py || echo "AI Integration tests failed but continuing..."
-        
-    - name: Upload test results
+    - name: Upload test and coverage results
       uses: actions/upload-artifact@v3
       if: always()
       with:
         name: test-results
         path: |
           .coverage
+          coverage.xml
           htmlcov/
