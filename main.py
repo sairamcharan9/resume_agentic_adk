@@ -94,6 +94,11 @@ async def optimize_resume(
     background_tasks: BackgroundTasks,
     job_description: str = Form(...),
     resume_file: UploadFile = File(...),
+    model_provider: str = Form('huggingface'),  # Default to Hugging Face
+    openai_model: Optional[str] = Form(None),
+    openrouter_model: Optional[str] = Form(None),
+    huggingface_model: Optional[str] = Form(None),
+    api_key: Optional[str] = Form(None),
     special_instructions: Optional[str] = Form(None)
 ):
     """
@@ -125,9 +130,33 @@ async def optimize_resume(
             content = await resume_file.read()
             await out_file.write(content)
         
+        # Configure AI model based on user selection
+        from src.utils.ai_integration import AIManager, ModelProvider
+        from src.utils.model_config import configure_openrouter
+        
+        # Set up the selected model
+        selected_model = None
+        if model_provider == 'openai' and openai_model:
+            selected_model = openai_model
+            if api_key:  # Set OpenAI API key if provided
+                os.environ["OPENAI_API_KEY"] = api_key
+        elif model_provider == 'openrouter' and openrouter_model:
+            selected_model = openrouter_model
+            if api_key:  # Set OpenRouter API key if provided
+                configure_openrouter(api_key)
+        elif model_provider == 'huggingface' and huggingface_model:
+            selected_model = huggingface_model
+        
+        # Create AI manager with the selected configuration
+        ai_manager = AIManager(
+            provider=model_provider,
+            model_name=selected_model,
+            temperature=0.3
+        )
+        
         # Initialize components
         parser = LaTeXResumeParser()
-        optimizer = ResumeOptimizer()
+        optimizer = ResumeOptimizer(ai_manager=ai_manager)
         latex_gen = LaTeXGenerator()
         ats_analyzer = ATSAnalyzer()
         
