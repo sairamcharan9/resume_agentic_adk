@@ -100,6 +100,86 @@
                         </div>
                         
                         <div>
+                            <h3 class="text-lg font-medium leading-6 text-gray-900">AI Model Configuration</h3>
+                            <div class="mt-4 space-y-4">
+                                <div>
+                                    <label for="modelProvider" class="block text-sm font-medium text-gray-700">
+                                        Model Provider
+                                    </label>
+                                    <div class="mt-1">
+                                        <select id="modelProvider" name="model_provider"
+                                            class="shadow-sm focus:ring-primary focus:border-primary block w-full sm:text-sm border-gray-300 rounded-md">
+                                            <option value="huggingface">Hugging Face (Free)</option>
+                                            <option value="openrouter">OpenRouter</option>
+                                            <option value="openai">OpenAI</option>
+                                            <option value="llamacpp">Local Model</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                
+                                <div class="provider-options" id="openrouterOptions">
+                                    <label for="openrouterModel" class="block text-sm font-medium text-gray-700">
+                                        OpenRouter Model
+                                    </label>
+                                    <div class="mt-1">
+                                        <select id="openrouterModel" name="openrouter_model"
+                                            class="shadow-sm focus:ring-primary focus:border-primary block w-full sm:text-sm border-gray-300 rounded-md">
+                                            <option value="anthropic/claude-3-sonnet">Claude 3 Sonnet (Balanced)</option>
+                                            <option value="anthropic/claude-3-opus">Claude 3 Opus (Highest Quality)</option>
+                                            <option value="anthropic/claude-3-haiku">Claude 3 Haiku (Fast)</option>
+                                            <option value="meta-llama/llama-3-70b-instruct">LLaMA 3 70B</option>
+                                            <option value="google/gemini-pro">Google Gemini Pro</option>
+                                            <option value="google/gemini-2.0-flash-exp:free">Google Gemini 2.0 Flash (Free)</option>
+                                            <option value="mistralai/mistral-large">Mistral Large</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                
+                                <div class="provider-options" id="openaiOptions">
+                                    <label for="openaiModel" class="block text-sm font-medium text-gray-700">
+                                        OpenAI Model
+                                    </label>
+                                    <div class="mt-1">
+                                        <select id="openaiModel" name="openai_model"
+                                            class="shadow-sm focus:ring-primary focus:border-primary block w-full sm:text-sm border-gray-300 rounded-md">
+                                            <option value="gpt-3.5-turbo">GPT-3.5 Turbo</option>
+                                            <option value="gpt-4">GPT-4</option>
+                                            <option value="gpt-4-turbo">GPT-4 Turbo</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                
+                                <div class="provider-options" id="huggingfaceOptions">
+                                    <label for="huggingfaceModel" class="block text-sm font-medium text-gray-700">
+                                        Hugging Face Model
+                                    </label>
+                                    <div class="mt-1">
+                                        <select id="huggingfaceModel" name="huggingface_model"
+                                            class="shadow-sm focus:ring-primary focus:border-primary block w-full sm:text-sm border-gray-300 rounded-md">
+                                            <option value="mistralai/Mistral-7B-Instruct-v0.2">Mistral 7B Instruct</option>
+                                            <option value="google/flan-t5-large">FLAN-T5 Large</option>
+                                            <option value="TinyLlama/TinyLlama-1.1B-Chat-v1.0">TinyLlama 1.1B</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                
+                                <div class="api-key-input">
+                                    <label for="apiKey" class="block text-sm font-medium text-gray-700">
+                                        API Key
+                                    </label>
+                                    <div class="mt-1">
+                                        <input type="password" id="apiKey" name="api_key"
+                                            class="shadow-sm focus:ring-primary focus:border-primary block w-full sm:text-sm border-gray-300 rounded-md"
+                                            placeholder="Enter your API key here">
+                                    </div>
+                                    <p class="mt-1 text-sm text-gray-500" id="apiKeyHelp">
+                                        Required for OpenAI and OpenRouter. Not needed for Hugging Face free models.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div>
                             <h3 class="text-lg font-medium leading-6 text-gray-900">Special Instructions (Optional)</h3>
                             <div class="mt-4">
                                 <label for="specialInstructions" class="block text-sm font-medium text-gray-700">
@@ -130,5 +210,57 @@
             <p class="text-center">&copy; 2025 Resume Optimizer. All rights reserved.</p>
         </div>
     </footer>
+    
+    <script>
+        // Function to manage model options visibility
+        function updateModelOptions() {
+            const provider = document.getElementById('modelProvider').value;
+            const apiKeyInput = document.querySelector('.api-key-input');
+            const apiKeyHelp = document.getElementById('apiKeyHelp');
+            
+            // Hide all provider-specific options
+            document.querySelectorAll('.provider-options').forEach(div => {
+                div.style.display = 'none';
+            });
+            
+            // Show the selected provider options
+            if (provider) {
+                const options = document.getElementById(provider + 'Options');
+                if (options) {
+                    options.style.display = 'block';
+                }
+            }
+            
+            // Update API key field help text and visibility
+            if (provider === 'openai') {
+                apiKeyInput.style.display = 'block';
+                apiKeyHelp.textContent = 'Required for OpenAI. Enter your OpenAI API key.';
+            } else if (provider === 'openrouter') {
+                apiKeyInput.style.display = 'block';
+                apiKeyHelp.textContent = 'Required for OpenRouter. Enter your OpenRouter API key.';
+            } else if (provider === 'huggingface') {
+                apiKeyInput.style.display = 'none';
+                apiKeyHelp.textContent = 'Not required for free Hugging Face models.';
+            } else if (provider === 'llamacpp') {
+                apiKeyInput.style.display = 'none';
+                apiKeyHelp.textContent = 'Not required for local models.';
+            }
+        }
+        
+        // Initial setup
+        document.addEventListener('DOMContentLoaded', function() {
+            // Hide all provider options initially except the default
+            document.querySelectorAll('.provider-options').forEach(div => {
+                div.style.display = 'none';
+            });
+            document.getElementById('huggingfaceOptions').style.display = 'block';
+            
+            // Set up event listener
+            document.getElementById('modelProvider').addEventListener('change', updateModelOptions);
+            
+            // Initialize the form
+            updateModelOptions();
+        });
+    </script>
 </body>
 </html>

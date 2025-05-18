@@ -6,20 +6,21 @@ and special instructions, specifically for Computer Science, Data Science, and A
 """
 
 import os
-import asyncio
-from typing import Dict, List, Any, Optional
 import re
-from pathlib import Path
 import json
+from typing import Dict, List, Any, Optional, Union, Tuple
+from dataclasses import dataclass
 
-# Import Langchain components
-from langchain_openai import ChatOpenAI
+# LangChain imports
+from langchain_openai import OpenAI, ChatOpenAI
 from langchain.prompts import PromptTemplate
+from langchain.prompts.chat import ChatPromptTemplate, SystemMessagePromptTemplate, HumanMessagePromptTemplate
 from langchain.chains import LLMChain
 from langchain.output_parsers import StructuredOutputParser, ResponseSchema
 
-# Import job description analyzer
+# Import required modules
 from src.utils.job_analyzer import JobDescriptionAnalyzer
+from src.utils.ai_integration import AIManager
 
 class ResumeOptimizer:
     """
@@ -27,14 +28,21 @@ class ResumeOptimizer:
     for Computer Science, Data Science, and AI/ML domains.
     """
     
-    def __init__(self):
-        """Initialize the resume optimizer with LLM model and templates"""
-        # Initialize the LLM
-        self.llm = ChatOpenAI(
-            model_name="gpt-4",  # Use GPT-4 for best results in technical resume optimization
-            temperature=0.5,     # Balance between creativity and precision
-            openai_api_key=os.getenv("OPENAI_API_KEY")
-        )
+    def __init__(self, ai_manager: Optional[AIManager] = None):
+        """Initialize the resume optimizer with AI model and templates
+        
+        Args:
+            ai_manager: Optional AIManager instance for model customization
+        """
+        # Initialize the AI manager or create a default one
+        if ai_manager is None:
+            # Create default AIManager - prefer free models if available
+            self.ai_manager = AIManager()
+        else:
+            self.ai_manager = ai_manager
+            
+        # Use the LLM from the AI manager
+        self.llm = self.ai_manager.llm
         
         # Initialize the job description analyzer
         self.job_analyzer = JobDescriptionAnalyzer()

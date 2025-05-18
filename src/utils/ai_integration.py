@@ -2,17 +2,22 @@
 AI Integration Module
 
 This module handles integration with various AI models for resume optimization,
-providing prompts, chains, and model management.
+providing prompts, chains, and model management. Supports both commercial APIs
+like OpenAI and free open-source models via Hugging Face.
 """
 
 import os
 import json
-from typing import Dict, List, Any, Optional, Union
+import enum
+from typing import Dict, List, Any, Optional, Union, Literal
 from pathlib import Path
 import asyncio
+import logging
+
+# Local imports
+from src.utils.model_config import configure_openrouter
 
 # LangChain imports
-from langchain_openai import ChatOpenAI
 from langchain.prompts import PromptTemplate, ChatPromptTemplate, HumanMessagePromptTemplate
 from langchain.prompts.chat import SystemMessagePromptTemplate
 from langchain.chains import LLMChain
@@ -21,31 +26,89 @@ from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.schema import Document
 from langchain.docstore.document import Document as LangchainDocument
 from langchain.output_parsers import StructuredOutputParser, ResponseSchema
-from langchain.retrievers import BM25Retriever
+from langchain_community.retrievers import BM25Retriever
+
+# Model imports
+from langchain_openai import ChatOpenAI
+from langchain_community.llms import HuggingFacePipeline
+from langchain_community.llms import LlamaCpp
+from langchain_community.embeddings import HuggingFaceEmbeddings
+
+# Optional imports for Hugging Face integration
+try:
+    import torch
+    from transformers import AutoTokenizer, AutoModelForCausalLM, pipeline
+    HUGGINGFACE_AVAILABLE = True
+except ImportError:
+    HUGGINGFACE_AVAILABLE = False
+    logging.warning("Hugging Face transformers library not available. Falling back to OpenAI if configured.")
+
+# Optional imports for llama.cpp integration
+try:
+    from llama_cpp import Llama
+    LLAMACPP_AVAILABLE = True
+except ImportError:
+    LLAMACPP_AVAILABLE = False
+    logging.warning("llama-cpp-python not available. Cannot use local Llama models.")
+
+class ModelProvider(str, enum.Enum):
+    """Supported AI model providers"""
+    OPENAI = "openai"
+    OPENROUTER = "openrouter"
+    HUGGINGFACE = "huggingface"
+    LLAMACPP = "llamacpp"
 
 class AIManager:
     """
     Manages AI models, prompts, and chains for resume optimization.
+    Supports multiple model providers including OpenAI, Hugging Face, and local models.
     """
     
-    def __init__(self, model_name: str = "gpt-4", temperature: float = 0.2):
+    # Default models for different providers
+    DEFAULT_MODELS = {
+        ModelProvider.OPENAI: "gpt-3.5-turbo",
+        ModelProvider.OPENROUTER: "anthropic/claude-3-opus",  # High quality but costlier
+        ModelProvider.HUGGINGFACE: "mistralai/Mistral-7B-Instruct-v0.2",
+        ModelProvider.LLAMACPP: "models/mistral-7b-instruct-v0.2.Q4_K_M.gguf"
+    }
+    
+    def __init__(self, 
+                provider: Union[str, ModelProvider] = ModelProvider.HUGGINGFACE, 
+                model_name: Optional[str] = None, 
+                temperature: float = 0.2,
+                device: str = "cpu",
+                model_kwargs: Optional[Dict[str, Any]] = None):
         """
-        Initialize the AI Manager with specified model and temperature.
+        Initialize the AI Manager with specified provider, model and settings.
         
         Args:
-            model_name: The OpenAI model to use (e.g., "gpt-3.5-turbo", "gpt-4")
+            provider: The model provider to use ("openai", "huggingface", or "llamacpp")
+            model_name: The model to use (provider-specific). If None, uses default for provider
             temperature: Model temperature (0.0 to 1.0), lower for more consistent outputs
+            device: Device to run the model on ("cpu" or "cuda" for GPU support)
+            model_kwargs: Additional keyword arguments to pass to the model
         """
-        # Check if API key is available
-        if not os.getenv("OPENAI_API_KEY"):
-            raise ValueError("OpenAI API key is not set. Set the OPENAI_API_KEY environment variable.")
+        if isinstance(provider, str):
+            try:
+                provider = ModelProvider(provider.lower())
+            except ValueError:
+                raise ValueError(
+                    f"Invalid provider '{provider}'. Must be one of: {', '.join([p.value for p in ModelProvider])}"
+                )
         
-        # Initialize the model
-        self.llm = ChatOpenAI(
-            model_name=model_name,
-            temperature=temperature,
-            openai_api_key=os.getenv("OPENAI_API_KEY")
-        )
+        self.provider = provider
+        self.temperature = temperature
+        self.device = device
+        self.model_kwargs = model_kwargs or {}
+        
+        # Use default model if none specified
+        if model_name is None:
+            model_name = self.DEFAULT_MODELS[provider]
+        
+        self.model_name = model_name
+        
+        # Initialize the model based on provider
+        self._initialize_model()
         
         # Initialize text splitter for long documents
         self.text_splitter = RecursiveCharacterTextSplitter(
@@ -55,6 +118,138 @@ class AIManager:
         
         # Load prompts
         self._initialize_prompts()
+    
+    def _initialize_model(self):
+        """
+        Initialize the appropriate model based on the selected provider.
+        """
+        if self.provider == ModelProvider.OPENAI:
+            self._initialize_openai_model()
+        elif self.provider == ModelProvider.OPENROUTER:
+            self._initialize_openrouter_model()
+        elif self.provider == ModelProvider.HUGGINGFACE:
+            self._initialize_huggingface_model()
+        elif self.provider == ModelProvider.LLAMACPP:
+            self._initialize_llamacpp_model()
+        else:
+            raise ValueError(f"Unsupported model provider: {self.provider}")
+            
+    def _initialize_openai_model(self):
+        """
+        Initialize an OpenAI model.
+        """
+        # Check if API key is available
+        if not os.getenv("OPENAI_API_KEY"):
+            raise ValueError("OpenAI API key is not set. Set the OPENAI_API_KEY environment variable.")
+            
+        # Initialize the model
+        self.llm = ChatOpenAI(
+            model_name=self.model_name,
+            temperature=self.temperature,
+            openai_api_key=os.getenv("OPENAI_API_KEY"),
+            **self.model_kwargs
+        )
+        
+    def _initialize_openrouter_model(self):
+        """
+        Initialize an OpenRouter model that provides access to various top-tier AI models
+        through a unified API (Claude, Anthropic, Meta's models, etc).
+        """
+        # Check if API key is available
+        if not os.getenv("OPENROUTER_API_KEY"):
+            raise ValueError("OpenRouter API key is not set. Set the OPENROUTER_API_KEY environment variable.")
+            
+        # Initialize the model with OpenRouter base URL
+        self.llm = ChatOpenAI(
+            model_name=self.model_name,
+            temperature=self.temperature,
+            openai_api_key=os.getenv("OPENROUTER_API_KEY"),
+            openai_api_base="https://openrouter.ai/api/v1",
+            # OpenRouter specific parameters
+            model_kwargs={
+                "HTTP_REFERER": "https://resume-optimizer.local",  # Required by OpenRouter
+                "x-title": "Resume Optimizer"  # Optional: identify your app
+            },
+            **self.model_kwargs
+        )
+        
+    def _initialize_huggingface_model(self):
+        """
+        Initialize a Hugging Face model.
+        """
+        if not HUGGINGFACE_AVAILABLE:
+            raise ImportError(
+                "Hugging Face transformers library is not installed. "
+                "Install it with 'pip install transformers torch' to use Hugging Face models."
+            )
+            
+        try:
+            # Load tokenizer and model with reduced precision for efficiency
+            tokenizer = AutoTokenizer.from_pretrained(self.model_name)
+            
+            # For larger models, 8-bit quantization to reduce VRAM usage
+            model_kwargs = {"device_map": self.device}
+            if "8bit" in self.model_kwargs and self.model_kwargs["8bit"]:
+                model_kwargs["load_in_8bit"] = True
+            
+            # Load model with appropriate settings
+            model = AutoModelForCausalLM.from_pretrained(
+                self.model_name,
+                **model_kwargs
+            )
+            
+            # Create text generation pipeline
+            pipe = pipeline(
+                "text-generation",
+                model=model,
+                tokenizer=tokenizer,
+                max_new_tokens=512,
+                temperature=self.temperature,
+                top_p=0.95,
+                repetition_penalty=1.15
+            )
+            
+            # Create LangChain interface for the model
+            self.llm = HuggingFacePipeline(pipeline=pipe)
+            
+        except Exception as e:
+            raise RuntimeError(f"Failed to initialize Hugging Face model: {e}") from e
+            
+    def _initialize_llamacpp_model(self):
+        """
+        Initialize a llama.cpp model for efficient local inference.
+        """
+        if not LLAMACPP_AVAILABLE:
+            raise ImportError(
+                "llama-cpp-python is not installed. "
+                "Install it with 'pip install llama-cpp-python' to use local Llama models."
+            )
+            
+        try:
+            # Default parameters that work well for most systems
+            llamacpp_kwargs = {
+                "n_ctx": 4096,  # Context window size
+                "n_batch": 512,  # Batch size for more efficient processing
+                "n_threads": max(1, os.cpu_count() // 2),  # Use half of available CPU cores
+                "n_gpu_layers": 0  # By default don't use GPU layers
+            }
+            
+            # Override defaults with user-provided settings
+            if self.model_kwargs:
+                llamacpp_kwargs.update(self.model_kwargs)
+                
+            # Create LangChain wrapper for the model
+            self.llm = LlamaCpp(
+                model_path=self.model_name,
+                temperature=self.temperature,
+                max_tokens=512,
+                top_p=0.95,
+                verbose=False,
+                **llamacpp_kwargs
+            )
+            
+        except Exception as e:
+            raise RuntimeError(f"Failed to initialize llama.cpp model: {e}") from e
     
     def _initialize_prompts(self):
         """Initialize prompt templates for different optimization tasks"""
@@ -440,28 +635,154 @@ ENHANCED IMPACT STATEMENTS:
         except Exception as e:
             raise Exception(f"Error generating impact statements: {str(e)}")
 
+def get_available_models():
+    """
+    Return the available AI models based on installed packages and configuration.
+    
+    Returns:
+        Dict[str, List[str]]: Dictionary of available models by provider
+    """
+    available = {}
+    
+    # Configure OpenRouter with the API key
+    configure_openrouter("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")
+    
+    # OpenRouter models (diverse selection of powerful models)
+    if os.getenv("OPENROUTER_API_KEY"):
+        available[ModelProvider.OPENROUTER] = [
+            "anthropic/claude-3-opus",    # Highest quality, more expensive
+            "anthropic/claude-3-sonnet",  # Balanced quality and cost
+            "anthropic/claude-3-haiku",   # Fastest, most economical
+            "meta-llama/llama-3-70b-instruct", # Meta's largest model
+            "google/gemini-pro",         # Google's model
+            "google/gemini-2.0-flash-exp:free", # Free access to Gemini through OpenRouter
+            "mistralai/mistral-large"     # Mistral's commercial model
+        ]
+    
+    # OpenAI models
+    if os.getenv("OPENAI_API_KEY"):
+        available[ModelProvider.OPENAI] = [
+            "gpt-3.5-turbo",
+            "gpt-4",
+            "gpt-4-turbo"
+        ]
+    
+    # Hugging Face models
+    if HUGGINGFACE_AVAILABLE:
+        available[ModelProvider.HUGGINGFACE] = [
+            "mistralai/Mistral-7B-Instruct-v0.2",  # Good general purpose model
+            "google/flan-t5-large",               # Smaller, more efficient
+            "meta-llama/Llama-2-7b-chat-hf",      # If authenticated with HF
+            "TinyLlama/TinyLlama-1.1B-Chat-v1.0" # Tiny model for testing
+        ]
+    
+    # Local Llama.cpp models
+    if LLAMACPP_AVAILABLE:
+        # Check for model files in a 'models' directory
+        models_dir = Path("models")
+        if models_dir.exists() and models_dir.is_dir():
+            local_models = [str(p.relative_to('.')) for p in models_dir.glob("*.gguf")]
+            if local_models:
+                available[ModelProvider.LLAMACPP] = local_models
+    
+    return available
 
-
+def create_model_factory(provider_preference: List[ModelProvider] = None):
+    """
+    Create an AI model based on available providers and preference order.
+    
+    Args:
+        provider_preference: List of providers in order of preference
+                            Default: [OPENROUTER, HUGGINGFACE, LLAMACPP, OPENAI]  
+    
+    Returns:
+        AIManager: Initialized AI model with the first available provider
+    """
+    if provider_preference is None:
+        # If OpenRouter API key is available, prioritize it, otherwise use free models first
+        if os.getenv("OPENROUTER_API_KEY"):
+            provider_preference = [ModelProvider.OPENROUTER, ModelProvider.HUGGINGFACE, ModelProvider.LLAMACPP, ModelProvider.OPENAI]
+        else:
+            # Default to free models first, then paid models
+            provider_preference = [ModelProvider.HUGGINGFACE, ModelProvider.LLAMACPP, ModelProvider.OPENAI]
+    
+    available_models = get_available_models()
+    
+    # Try providers in order of preference
+    for provider in provider_preference:
+        if provider in available_models and available_models[provider]:
+            try:
+                # Use first model from the available models for this provider
+                model_name = available_models[provider][0]
+                logging.info(f"Using {provider} model: {model_name}")
+                
+                # For LLAMACPP, ensure full path if just model name
+                if provider == ModelProvider.LLAMACPP and not Path(model_name).is_absolute():
+                    if not model_name.startswith('models/'):
+                        model_name = f"models/{model_name}"
+                
+                return AIManager(provider=provider, model_name=model_name)
+            except Exception as e:
+                logging.warning(f"Failed to initialize {provider} model: {str(e)}")
+                continue
+    
+    raise ValueError("No available AI models found. Please install at least one of: transformers+torch, llama-cpp-python, or set OPENAI_API_KEY.")
 
 def main():
-    """Test function for development purposes"""
-    async def test_ai_manager():
-        ai_manager = AIManager()
-        
-        # Test optimizing a resume section
-        section = "I am a software engineer with 5 years of experience in web development."
-        job_reqs = "Looking for a senior Python developer with experience in Django and REST APIs."
-        keywords = ["Python", "Django", "REST API", "senior", "web development"]
-        
-        result = await ai_manager.optimize_resume_section(
-            "Summary", section, job_reqs, keywords
-        )
-        
-        print("Optimized Section:")
-        print(result)
+    """Test the AI integration module with different model providers."""
+    logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
     
-    # Run the test
-    asyncio.run(test_ai_manager())
+    print("Resume Optimizer - AI Integration Test")
+    print("====================================")
+    
+    # Get available models
+    available_models = get_available_models()
+    if not available_models:
+        print("No AI models available. Please install transformers+torch, llama-cpp-python, or set OPENAI_API_KEY.")
+        return
+    
+    print("\nAvailable Model Providers:")
+    for provider, models in available_models.items():
+        print(f"- {provider}: {len(models)} model(s) available")
+        for model in models:
+            print(f"  - {model}")
+    
+    try:
+        # Create AI model with default provider preference
+        ai_manager = create_model_factory()
+        print(f"\nUsing model provider: {ai_manager.provider}")
+        print(f"Model: {ai_manager.model_name}")
+        
+        # Sample data for optimization
+        section_type = "Work Experience"
+        original_content = (
+            "Software Engineer at XYZ Corp (2020-Present)\n"
+            "- Developed web applications using React and Node.js\n"
+            "- Implemented database solutions using MongoDB\n"
+            "- Worked with a team of 5 developers on various projects\n"
+        )
+        job_requirements = (
+            "We're looking for a Python Developer with Django experience.\n"
+            "Must have 3+ years of experience with Python web development.\n"
+            "Experience with PostgreSQL and RESTful API design is required.\n"
+            "Knowledge of cloud platforms like AWS is a plus.\n"
+        )
+        keywords = ["Python", "Django", "PostgreSQL", "RESTful API", "AWS"]
+        
+        print("\nOptimizing resume section...")
+        result = asyncio.run(ai_manager.optimize_resume_section(
+            section_type, original_content, job_requirements, keywords
+        ))
+        
+        print("\nOriginal Content:")
+        print(original_content)
+        print("\nOptimized Content:")
+        print(result)
+        
+    except Exception as e:
+        print(f"\nError: {str(e)}")
+        import traceback
+        traceback.print_exc()
 
 if __name__ == "__main__":
     main()

@@ -12,6 +12,16 @@ requests>=2.31.0
 # Langchain and related packages
 langchain>=0.0.267
 langchain-openai>=0.0.2
+langchain-community>=0.0.10
+
+# Free model support - Optional dependencies
+transformers>=4.34.0
+sentencepiece>=0.1.99
+protobuf>=4.24.4
+einops>=0.7.0
+# Install one of these based on your preference:
+# llama-cpp-python>=0.2.19  # For local models (requires C++ compiler)
+# bitsandbytes>=0.41.1     # For 8-bit quantization support
 
 # PDF processing packages
 PyPDF2>=3.0.0
