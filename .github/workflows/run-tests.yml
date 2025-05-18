@@ -57,7 +57,7 @@ jobs:
         python -m pytest tests/ --cov=src --cov-report=html
         
     - name: Upload test and coverage results
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       if: always()
       with:
         name: test-results
@@ -65,3 +65,4 @@ jobs:
           .coverage
           coverage.xml
           htmlcov/
+        retention-days: 14
