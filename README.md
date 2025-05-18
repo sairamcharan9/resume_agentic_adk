@@ -1,6 +1,6 @@
 # Resume Optimizer (RO)
 
-A specialized application for optimizing resumes for Computer Science, Data Science, and AI/ML positions based on job descriptions and special instructions.
+A specialized application for optimizing resumes for Computer Science, Data Science, and AI/ML positions based on job descriptions and special instructions. Features multiple AI model providers and flexible configuration options.
 
 ## Overview
 
@@ -32,6 +32,46 @@ The project follows a Minimum Viable Product (MVP) approach with these prioritie
 - **Domain-Specific Optimization**: Specialized for Computer Science, Data Science, and AI/ML fields
 - **Feedback Loop**: Continuously improve optimization quality based on user feedback
 - **LaTeX Template Generation**: Output professionally formatted LaTeX files
+- **Flexible AI Model Selection**: Choose from multiple AI providers including OpenAI, OpenRouter, Hugging Face, and local models
+- **Custom API Key Configuration**: Input your own API keys directly through the user interface
+
+## AI Model Integration
+
+The Resume Optimizer supports multiple AI model providers to give you flexibility in choosing the right model for your needs:
+
+### Supported Providers
+
+1. **OpenAI**
+   - GPT-3.5 Turbo
+   - GPT-4
+   - GPT-4 Turbo
+
+2. **OpenRouter**
+   - Claude models (Anthropic)
+   - Google Gemini 2.0 Flash Experimental (Free option)
+   - LLaMA models (Meta)
+   - Mistral models
+   - And many other models accessible through OpenRouter
+
+3. **Hugging Face**
+   - Various open-source models hosted on Hugging Face
+
+4. **Local Models**
+   - Support for running models locally using Ollama
+
+### Using Custom API Keys
+
+You can provide your own API keys directly through the frontend interface:
+
+1. Select your preferred model provider from the dropdown menu
+2. Enter your API key in the designated field (required for OpenAI and OpenRouter)
+3. Choose a specific model from the available options
+4. The application will use your provided configuration for all optimization requests
+
+This feature allows you to:
+- Use your own API credits
+- Access premium models like GPT-4
+- Maintain control over which models process your data
 
 ## Project Structure
 
@@ -66,7 +106,11 @@ resume-optimizer/
 
 - Python 3.8+
 - LaTeX installed on your system
-- OpenAI API Key (for AI content optimization)
+- API Key from one of the supported providers (optional, can be provided through the UI):
+  - OpenAI API Key
+  - OpenRouter API Key
+  - Hugging Face API Token (for some models)
+  - Local Ollama installation (for local models)
 
 ### Installation
 
@@ -87,17 +131,18 @@ source venv/bin/activate  # On Windows: venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
-4. Create a `.env` file with your API key:
+4. (Optional) Create a `.env` file with your API keys:
 ```
-OPENAI_API_KEY=your_api_key_here
+OPENAI_API_KEY=your_openai_api_key_here
+OPENROUTER_API_KEY=your_openrouter_api_key_here
+HUGGINGFACE_API_KEY=your_huggingface_api_key_here
 ```
+
+Note: You can also provide these API keys directly through the web interface.
 
 ### Usage
 
-1. Set up your OpenAI API key in the `.env` file:
-```
-OPENAI_API_KEY=your_api_key_here
-```
+1. (Optional) Set up your API keys in the `.env` file as shown in the installation steps, or prepare to enter them in the web interface.
 
 2. Run the FastAPI server:
 ```bash
@@ -106,9 +151,21 @@ python -m uvicorn main:app --reload
 
 3. Navigate to http://127.0.0.1:8000 in your browser to access the web interface.
 
+4. In the web interface, select your preferred AI model provider and configure it:
+   - Choose a provider (OpenAI, OpenRouter, Hugging Face, Local)
+   - Enter your API key if required
+   - Select a specific model from the available options
+   - Google Gemini 2.0 Flash is available as a free option through OpenRouter
+
+5. Proceed with resume optimization using your configured model.
+
 ### Web Interface
 
 The web interface allows you to:
+
+- Select your preferred AI model provider and specific model
+- Configure API keys directly through the UI
+- Access free model options like Google Gemini 2.0 Flash Experimental
 - Upload a LaTeX resume file (.tex)
 - Enter job description details including title and requirements
 - Add special instructions for optimization
@@ -194,6 +251,50 @@ Each development session follows a structured workflow:
 5. Update task status in sprint planning
 
 See the `scrum/developer1_session_guide.md` and `scrum/developer2_session_guide.md` for detailed workflow instructions.
+
+## Security Considerations
+
+### API Key Management
+
+This application offers two methods for providing API keys:
+
+1. **Environment Variables**: Store API keys in a `.env` file (recommended for development)
+2. **Web Interface**: Enter API keys directly in the UI (convenient for quick testing)
+
+Best practices for API key security:
+
+- **DO NOT** commit your `.env` file or any file containing API keys to version control
+- The application does not store API keys entered through the UI in a persistent database
+- Consider using environment variables for production deployments
+- Regularly rotate your API keys following the provider's recommendations
+
+## Troubleshooting
+
+### Common Issues with AI Models
+
+**Issue**: Model provider returns an error
+**Solution**: 
+- Verify your API key is correct and has sufficient credits/quota
+- Check that the selected model is available through your subscription tier
+- For OpenRouter, ensure the specific model you've selected is accessible
+
+**Issue**: Free Gemini model not working
+**Solution**:
+- The Google Gemini 2.0 Flash Experimental model is provided through OpenRouter
+- This model may have usage limitations or could become unavailable
+- Try selecting a different model if you encounter issues
+
+**Issue**: Local models not appearing
+**Solution**:
+- Ensure Ollama is properly installed and running on your system
+- Check that your selected model has been downloaded to your Ollama instance
+- Verify network connectivity between the application and Ollama
+
+**Issue**: Slow response times
+**Solution**:
+- Larger models (like GPT-4) typically have longer response times
+- Consider using a smaller or faster model for quicker results
+- Check your network connection and provider status
 
 ## License
 
