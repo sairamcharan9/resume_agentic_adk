@@ -127,6 +127,26 @@ The application exposes the following API endpoints:
 
 ## Development
 
+### Testing and CI/CD
+
+The project uses pytest for unit testing with code coverage tracking:
+
+```bash
+# Run tests with coverage report
+python -m pytest tests/ -v --cov=src --cov-report=term --cov-report=html
+```
+
+#### GitHub Actions
+
+The project is set up with GitHub Actions workflow to automatically run tests on code pushes and pull requests:
+
+- Automatically runs on pushes to main and dev-* branches
+- Runs on multiple Python versions (3.8, 3.9)
+- Generates code coverage reports
+- Uploads test artifacts for easy review
+
+The workflow configuration is in `.github/workflows/run-tests.yml`.
+
 ### Collaboration Framework
 
 This project is designed for collaborative development with two developers using Windsurf. We follow Agile/Scrum methodology with:
@@ -135,6 +155,7 @@ This project is designed for collaborative development with two developers using
 - Component-based ownership to minimize merge conflicts
 - Daily communication through structured logs
 - Detailed component boundaries for clear interfaces
+- Continuous integration via GitHub Actions
 
 ### Component Ownership
 

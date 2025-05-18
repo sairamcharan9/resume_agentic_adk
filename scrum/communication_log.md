@@ -49,6 +49,19 @@ This log tracks daily work focus and communication between team members to preve
   - scrum/communication_log.md (Updated with session progress)
   - README.md (Updated project status and component ownership)
 - Questions/Blockers: None at this time
-- Notes for other developers: All core backend components for job analysis, keyword extraction, and AI-powered optimization are complete with unit tests. Created dev-2 branch with all changes. Next steps will be integrating with frontend components and implementing the visual reporting for ATS analysis.
+- Notes for other developers: All core backend components for job analysis, keyword extraction, and AI-powered optimization are complete with unit tests. Created dev-2 branch with all changes.
+
+[2025-05-17] Developer 2 (Session 3)
+- Current focus: Setting up GitHub Actions for automated testing and CI/CD
+- Files modified:
+  - .github/workflows/run-tests.yml (Created GitHub Actions workflow for automated testing)
+  - requirements.txt (Added pytest and coverage dependencies)
+  - pytest.ini (Added pytest configuration for proper test discovery and async handling)
+  - tests/conftest.py (Added test fixtures for consistent environment setup)
+  - tests/test_job_analyzer.py (Fixed async testing issues)
+  - scrum/sprint_planning.md (Added CI/CD user story and marked it as completed)
+  - README.md (Updated with information about GitHub Actions and testing)
+- Questions/Blockers: None at this time
+- Notes for other developers: GitHub Actions workflow has been set up to automatically run tests on code pushes and pull requests. The workflow runs on Python 3.8 and 3.9, generates code coverage reports, and uploads test artifacts for easy review. This ensures code quality and catches issues early in the development process. Next steps will be integrating with frontend components and implementing the visual reporting for ATS analysis.
 
 <!-- Add new entries at the top of this section -->
