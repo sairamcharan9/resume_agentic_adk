@@ -210,6 +210,158 @@ ANALYSIS INSTRUCTIONS:
         except Exception as e:
             raise Exception(f"Job description analysis failed: {str(e)}")
     
+    def analyze_text(self, job_description_text: str, domain: str = "computer_science") -> Dict[str, Any]:
+        """
+        Analyze a consolidated job description text to extract structured information
+        
+        This method processes a full job description text and extracts the job title,
+        requirements, and other key information without requiring separate inputs.
+        
+        Args:
+            job_description_text: The full job description text
+            domain: Domain focus (computer_science, data_science, or ai_ml)
+            
+        Returns:
+            Dict containing analyzed job information
+        """
+        try:
+            # Extract quick keywords for initial analysis
+            quick_keywords = self.extract_quick_keywords(job_description_text, domain)
+            
+            # Try to extract job title from the text
+            title = self._extract_job_title(job_description_text)
+            
+            # Try to extract requirements from the text
+            requirements = self._extract_requirements(job_description_text)
+            
+            # Use the full analysis method with extracted components
+            result = asyncio.run(self.analyze(
+                title=title,
+                description=job_description_text,
+                requirements=requirements,
+                domain=domain
+            ))
+            
+            return result
+        
+        except Exception as e:
+            # Fallback to a simple analysis if the full analysis fails
+            return {
+                "title": self._extract_job_title(job_description_text),
+                "requirements": self._extract_requirements(job_description_text),
+                "skills": quick_keywords,
+                "keywords": quick_keywords,
+                "technologies": [k for k in quick_keywords if k in self.tech_by_domain.get(domain, [])],
+                "experience_level": self._extract_experience_level(job_description_text),
+                "domain_focus": domain
+            }
+    
+    def _extract_job_title(self, text: str) -> str:
+        """
+        Extract the job title from a job description text
+        
+        Args:
+            text: Job description text
+            
+        Returns:
+            Extracted job title or default
+        """
+        # Common job title patterns
+        title_patterns = [
+            # Look for common title formats like "Job Title: Software Engineer"
+            r"(?:job title|position|role)\s*(?::|is|as)\s*([^\n.,]{3,50})",
+            # Look for titles at the beginning with emphasis (uppercase, etc)
+            r"^\s*([A-Z][A-Z\s]{3,30})\s*$",
+            # Look for common tech job titles
+            r"\b(software engineer|data scientist|machine learning engineer|data engineer|full stack developer|frontend developer|backend developer|devops engineer|cloud architect|product manager|project manager|technical lead|engineering manager|CTO|VP of Engineering|SDET|QA Engineer)\b"
+        ]
+        
+        for pattern in title_patterns:
+            matches = re.findall(pattern, text, re.IGNORECASE | re.MULTILINE)
+            if matches:
+                return matches[0].strip()
+        
+        # If no specific title found, look for the first sentence that might contain the title
+        first_lines = text.split('\n')[:3]  # Check first 3 lines
+        for line in first_lines:
+            line = line.strip()
+            if 5 < len(line) < 100 and not line.endswith(':'):  # Reasonable title length
+                return line
+        
+        return "Position"  # Default fallback
+    
+    def _extract_requirements(self, text: str) -> List[str]:
+        """
+        Extract requirements from a job description text
+        
+        Args:
+            text: Job description text
+            
+        Returns:
+            List of extracted requirements
+        """
+        requirements = []
+        
+        # Look for requirements section
+        req_section_patterns = [
+            r"(?:requirements|qualifications|what you('ll| will) need|what we('re| are) looking for)\s*:?([\s\S]*?)(?:\n\n|\n\s*\n|$|skills|responsibilities|what you('ll| will) do)",
+            r"(?:\n|^)\s*[\*\-•]\s*([^\n]{10,150})(?:\n|$)"
+        ]
+        
+        for pattern in req_section_patterns:
+            matches = re.findall(pattern, text, re.IGNORECASE)
+            for match in matches:
+                if isinstance(match, tuple):
+                    # If the match is a tuple (multiple capture groups), get the last non-empty one
+                    content = next((m for m in reversed(match) if m), "")
+                else:
+                    content = match
+                
+                # Split by common list indicators
+                items = re.split(r'\n\s*[\*\-•]\s*', content)
+                for item in items:
+                    item = item.strip()
+                    if item and len(item) > 10:
+                        requirements.append(item)
+        
+        # If no structured requirements found, look for sentences with requirement keywords
+        if not requirements:
+            req_keywords = ["required", "must have", "should have", "minimum", "at least", "proficient"]
+            sentences = re.split(r'(?<=[.!?])\s+', text)
+            
+            for sentence in sentences:
+                if any(keyword in sentence.lower() for keyword in req_keywords):
+                    requirements.append(sentence.strip())
+        
+        return requirements[:10]  # Return top 10 requirements to avoid overwhelming
+    
+    def _extract_experience_level(self, text: str) -> str:
+        """
+        Extract experience level from job description text
+        
+        Args:
+            text: Job description text
+            
+        Returns:
+            Estimated experience level
+        """
+        text_lower = text.lower()
+        
+        # Check for explicit level mentions
+        level_patterns = {
+            "entry": [r"entry[ -]level", r"junior", r"0-2 years", r"less than 2 years", r"new grad", r"recent graduate"],
+            "mid": [r"mid[ -]level", r"intermediate", r"2-5 years", r"3-5 years", r"3\+ years"],
+            "senior": [r"senior", r"sr\.", r"lead", r"5\+ years", r"5-7 years", r"7\+ years", r"principal"],
+            "manager": [r"manager", r"director", r"head of", r"vp", r"chief", r"10\+ years"]
+        }
+        
+        for level, patterns in level_patterns.items():
+            if any(re.search(pattern, text_lower) for pattern in patterns):
+                return level
+        
+        # Default to mid-level if no clear indication
+        return "mid"
+    
     def extract_quick_keywords(self, text: str, domain: str = "computer_science") -> List[str]:
         """
         Quickly extract potential keywords from text without using the LLM

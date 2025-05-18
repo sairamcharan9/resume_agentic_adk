@@ -75,6 +75,7 @@ class OptimizationResponse(BaseModel):
     key_improvements: List[str]
     download_url: str
     feedback_url: str
+    results_url: str
 
 class FeedbackSubmission(BaseModel):
     resume_id: str
@@ -88,6 +89,21 @@ class FeedbackSubmission(BaseModel):
 async def home(request: Request):
     """Render the home page"""
     return templates.TemplateResponse("index.html", {"request": request})
+
+@app.get("/feedback")
+async def feedback_page(request: Request, resume_id: Optional[str] = None):
+    """Render the feedback page"""
+    return templates.TemplateResponse("feedback.html", {"request": request, "resume_id": resume_id})
+
+@app.get("/feedback/insights")
+async def feedback_insights_page(request: Request):
+    """Render the feedback insights page"""
+    return templates.TemplateResponse("feedback_insights.html", {"request": request})
+
+@app.get("/results")
+async def results_page(request: Request, id: Optional[str] = None):
+    """Render the results page for a specific optimization"""
+    return templates.TemplateResponse("results.html", {"request": request, "resume_id": id})
 
 @app.post("/api/optimize", response_model=OptimizationResponse)
 async def optimize_resume(
@@ -115,9 +131,27 @@ async def optimize_resume(
         # Generate a unique ID for this optimization
         resume_id = f"ro_{uuid.uuid4().hex[:8]}_{datetime.now().strftime('%Y%m%d')}"
         
-        # Parse input data
-        job_desc_data = json.loads(job_description)
-        job_desc_obj = JobDescription(**job_desc_data)
+        # Process the consolidated job description
+        from src.utils.job_analyzer import JobDescriptionAnalyzer
+        
+        # Create job analyzer to extract structured data from the text
+        job_analyzer = JobDescriptionAnalyzer() if 'JobDescriptionAnalyzer' in dir() else None
+        
+        # If analyzer exists, use it to extract structured data; otherwise create a simple structure
+        if job_analyzer:
+            job_analysis = job_analyzer.analyze_text(job_description)
+            job_desc_obj = JobDescription(
+                title=job_analysis.get('title', 'Job Position'),
+                description=job_description,
+                requirements=job_analysis.get('requirements', [])
+            )
+        else:
+            # Simple fallback if analyzer isn't implemented
+            job_desc_obj = JobDescription(
+                title="Extracted from Description",
+                description=job_description,
+                requirements=[]
+            )
         
         special_instr_obj = None
         if special_instructions:
@@ -188,7 +222,8 @@ async def optimize_resume(
             optimization_summary=optimized_data["summary"],
             key_improvements=optimized_data["improvements"],
             download_url=f"/api/download/{resume_id}",
-            feedback_url=f"/api/feedback/{resume_id}"
+            feedback_url=f"/feedback?resume_id={resume_id}",
+            results_url=f"/results?id={resume_id}"
         )
         
         return response
@@ -210,12 +245,122 @@ async def download_resume(resume_id: str):
         media_type="application/x-tex"
     )
 
+@app.get("/api/download/{resume_id}/pdf")
+async def download_resume_pdf(resume_id: str):
+    """Download the optimized resume as PDF"""
+    tex_path = temp_dir / f"{resume_id}_optimized.tex"
+    pdf_path = temp_dir / f"{resume_id}_optimized.pdf"
+    
+    if not tex_path.exists():
+        raise HTTPException(status_code=404, detail="Optimized resume not found")
+    
+    # Generate PDF if it doesn't exist
+    if not pdf_path.exists():
+        latex_gen = LaTeXGenerator()
+        pdf_path = await latex_gen.generate_pdf(tex_path)
+        
+        if not pdf_path or not pdf_path.exists():
+            raise HTTPException(status_code=500, detail="Failed to generate PDF")
+    
+    return FileResponse(
+        path=pdf_path,
+        filename=f"optimized_resume_{resume_id}.pdf",
+        media_type="application/pdf"
+    )
+
 @app.post("/api/feedback")
 async def submit_feedback(feedback: FeedbackSubmission):
     """Submit feedback for a resume optimization"""
-    processor = FeedbackProcessor()
-    await processor.process_feedback(feedback)
-    return {"status": "Feedback received", "message": "Thank you for your feedback!"}
+    try:
+        processor = FeedbackProcessor()
+        result = await processor.process_feedback(feedback.dict())
+        
+        if result.get("status") == "success":
+            return {"status": "success", "message": "Thank you for your feedback!", "feedback_id": result.get("feedback_id")}
+        else:
+            return {"status": "error", "message": result.get("message", "An error occurred while processing your feedback.")}
+    except Exception as e:
+        logger.error(f"Error processing feedback: {str(e)}")
+        return {"status": "error", "message": f"An error occurred: {str(e)}"}
+
+@app.get("/api/feedback/insights")
+async def get_feedback_insights():
+    """Get aggregated feedback insights"""
+    try:
+        processor = FeedbackProcessor()
+        insights = await processor.get_feedback_insights()
+        
+        return {
+            "status": "success",
+            "metrics": {
+                "total_feedback": insights.get("total_feedback", 0),
+                "avg_effectiveness": insights.get("avg_effectiveness", 0),
+                "avg_quality": insights.get("avg_quality", 0)
+            },
+            "ratings": {
+                "effectiveness": insights.get("effectiveness_distribution", {}),
+                "quality": insights.get("quality_distribution", {})
+            },
+            "interview_results": insights.get("interview_results", {}),
+            "positive_themes": insights.get("positive_themes", {}),
+            "negative_themes": insights.get("negative_themes", {}),
+            "recommendations": insights.get("recommendations", [])
+        }
+    except Exception as e:
+        logger.error(f"Error getting feedback insights: {str(e)}")
+        return {"status": "error", "message": f"An error occurred: {str(e)}"}
+
+@app.get("/api/results/{resume_id}")
+async def get_resume_results(resume_id: str):
+    """Get optimization results for a specific resume"""
+    # In a real application, you would fetch this from a database
+    # For now, we'll reconstruct it from the file if it exists
+    file_path = temp_dir / f"{resume_id}_optimized.tex"
+    if not file_path.exists():
+        raise HTTPException(status_code=404, detail="Optimization results not found")
+    
+    # In this simplified version, we'll return dummy data
+    # In a real app, you would store and retrieve the actual results
+    try:
+        # Try to reconstruct results from the ATS analyzer
+        ats_analyzer = ATSAnalyzer()
+        
+        # Create a dummy job description for analysis
+        # In a real app, you'd store and retrieve the actual job description
+        job_desc = {
+            "title": "Software Engineer",
+            "description": "Software engineering position",
+            "requirements": ["Python", "JavaScript", "API development"]
+        }
+        
+        ats_results = await ats_analyzer.analyze(file_path, job_desc)
+        
+        # Read the first few lines to extract a summary
+        with open(file_path, 'r', encoding='utf-8') as f:
+            content = f.read(1000)  # Read the first 1000 chars
+        
+        # Extract a basic summary from comments or content
+        summary = "Your resume has been optimized for the target position"
+        
+        # In a real app, you'd retrieve the actual improvements made
+        improvements = [
+            "Enhanced job-specific keywords", 
+            "Restructured experience section for better readability",
+            "Highlighted relevant skills and achievements"
+        ]
+        
+        return {
+            "resume_id": resume_id,
+            "ats_score": ats_results.get("ats_score", 85),
+            "keyword_match_score": ats_results.get("keyword_match_score", 80),
+            "optimization_summary": summary,
+            "key_improvements": improvements,
+            "download_url": f"/api/download/{resume_id}",
+            "feedback_url": f"/feedback?resume_id={resume_id}"
+        }
+    except Exception as e:
+        logger.error(f"Error retrieving results: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to retrieve results: {str(e)}")
 
 @app.get("/api/templates")
 async def list_templates():
