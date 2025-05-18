@@ -7,10 +7,17 @@ resume data structure and selected template.
 
 import os
 import asyncio
-from typing import Dict, List, Any, Optional
+import subprocess
+from typing import Dict, List, Any, Optional, Tuple
 from pathlib import Path
 import shutil
 import re
+import tempfile
+import logging
+
+# Set up logger
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 class LaTeXGenerator:
     """
@@ -49,7 +56,8 @@ class LaTeXGenerator:
                       optimized_data: Dict[str, Any],
                       output_path: Path,
                       template_name: Optional[str] = None,
-                      domain: str = "computer_science") -> Path:
+                      domain: str = "computer_science",
+                      generate_pdf: bool = False) -> Path:
         """
         Generate a LaTeX resume file based on optimized data
         
@@ -96,6 +104,11 @@ class LaTeXGenerator:
             output_path.parent.mkdir(exist_ok=True, parents=True)
             with open(output_path, 'w', encoding='utf-8') as file:
                 file.write(modified_template)
+            
+            # Generate PDF if requested
+            pdf_path = None
+            if generate_pdf:
+                pdf_path = await self.generate_pdf(output_path)
             
             return output_path
             
@@ -366,57 +379,122 @@ class LaTeXGenerator:
         
         return content
     
-    def _update_contact_info(self, template_content: str, contact_info: Dict[str, str]) -> str:
-        """Update contact information in the LaTeX template"""
-        modified_content = template_content
+    async def generate_pdf(self, latex_path: Path) -> Optional[Path]:
+        """
+        Generate a PDF file from a LaTeX file using latexmk
         
-        # Update name
-        if "name" in contact_info:
-            name_parts = contact_info["name"].split(" ", 1)
-            if len(name_parts) == 2:
-                first_name, last_name = name_parts
-                modified_content = re.sub(
-                    r'\\name{.*?}{.*?}',
-                    f'\\name{{{first_name}}}{{{last_name}}}',
-                    modified_content
-                )
+        Args:
+            latex_path: Path to the LaTeX file
+            
+        Returns:
+            Path to the generated PDF file or None if generation failed
+        """
+        try:
+            pdf_path = latex_path.with_suffix(".pdf")
+            work_dir = latex_path.parent
+            file_name = latex_path.name
+            
+            logger.info(f"Generating PDF from {file_name}")
+            
+            # Prepare the latexmk command
+            cmd = [
+                "latexmk", 
+                "-pdf",          # Use pdflatex
+                "-interaction=nonstopmode",  # Don't stop on errors
+                "-synctex=1",    # Generate synctex file for editor synchronization
+                "-file-line-error",  # Show file and line for errors
+                file_name         # The LaTeX file to compile
+            ]
+            
+            # Run latexmk in the directory containing the LaTeX file
+            process = await asyncio.create_subprocess_exec(
+                *cmd,
+                cwd=str(work_dir),
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE
+            )
+            
+            stdout, stderr = await process.communicate()
+            
+            # Check if PDF was generated successfully
+            if process.returncode == 0 and pdf_path.exists():
+                logger.info(f"Successfully generated PDF: {pdf_path}")
+                return pdf_path
             else:
-                modified_content = re.sub(
-                    r'\\name{.*?}{.*?}',
-                    f'\\name{{{contact_info["name"]}}}{{}}',
-                    modified_content
-                )
+                error_output = stderr.decode() if stderr else stdout.decode()
+                logger.error(f"PDF generation failed: {error_output}")
+                
+                # Check for common LaTeX errors
+                errors = self._parse_latex_errors(error_output)
+                if errors:
+                    for error in errors:
+                        logger.error(f"LaTeX Error: {error}")
+                
+                return None
+                
+        except Exception as e:
+            logger.error(f"Error generating PDF: {str(e)}")
+            return None
+    
+    def _parse_latex_errors(self, output: str) -> List[str]:
+        """
+        Parse LaTeX compilation errors from latexmk output
         
-        # Update email
-        if "email" in contact_info:
-            modified_content = re.sub(
-                r'\\email{.*?}',
-                f'\\email{{{contact_info["email"]}}}',
-                modified_content
-            )
+        Args:
+            output: The latexmk output to parse
+            
+        Returns:
+            List of error messages
+        """
+        # Extract LaTeX errors from output
+        errors = []
+        error_pattern = r"! (.+?)\n"
+        for match in re.finditer(error_pattern, output):
+            errors.append(match.group(1))
+        return errors
+            
+    def _update_contact_info(self, template_content: str, contact_info: Dict[str, str]) -> str:
+        """Update contact information in the LaTeX template using a safer approach"""
+        lines = template_content.split('\n')
+        modified_lines = []
         
-        # Update phone
-        if "phone" in contact_info:
-            modified_content = re.sub(
-                r'\\phone{.*?}',
-                f'\\phone{{{contact_info["phone"]}}}',
-                modified_content
-            )
+        for line in lines:
+            # Handle name replacement
+            if '\\name{' in line and "name" in contact_info:
+                name_parts = contact_info["name"].split(" ", 1)
+                if len(name_parts) == 2:
+                    first_name, last_name = name_parts
+                    modified_line = f'\\name{{{first_name}}}{{{last_name}}}'
+                else:
+                    modified_line = f'\\name{{{contact_info["name"]}}}{{}}'
+                modified_lines.append(modified_line)
+                continue
+                
+            # Handle email replacement
+            if '\\email{' in line and "email" in contact_info:
+                modified_line = f'\\email{{{contact_info["email"]}}}'
+                modified_lines.append(modified_line)
+                continue
+                
+            # Handle phone replacement
+            if '\\phone{' in line and "phone" in contact_info:
+                modified_line = f'\\phone{{{contact_info["phone"]}}}'
+                modified_lines.append(modified_line)
+                continue
+                
+            # Handle LinkedIn replacement
+            if '\\social[linkedin]{' in line and "linkedin" in contact_info:
+                modified_line = f'\\social[linkedin]{{{contact_info["linkedin"]}}}'
+                modified_lines.append(modified_line)
+                continue
+                
+            # Handle GitHub replacement
+            if '\\social[github]{' in line and "github" in contact_info:
+                modified_line = f'\\social[github]{{{contact_info["github"]}}}'
+                modified_lines.append(modified_line)
+                continue
+            
+            # If no replacements, keep the original line
+            modified_lines.append(line)
         
-        # Update LinkedIn
-        if "linkedin" in contact_info:
-            modified_content = re.sub(
-                r'\\social\[linkedin\]{.*?}',
-                f'\\social[linkedin]{{{contact_info["linkedin"]}}}',
-                modified_content
-            )
-        
-        # Update GitHub
-        if "github" in contact_info:
-            modified_content = re.sub(
-                r'\\social\[github\]{.*?}',
-                f'\\social[github]{{{contact_info["github"]}}}',
-                modified_content
-            )
-        
-        return modified_content
+        return '\n'.join(modified_lines)
