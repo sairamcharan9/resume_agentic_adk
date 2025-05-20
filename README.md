@@ -12,15 +12,15 @@ A powerful AI-driven tool that analyzes LaTeX resumes and provides tailored opti
 ## Prerequisites
 
 - Python 3.9+ installed
-- Google API key for Gemini model access
+- Google API key for Gemini model access (get one at https://makersuite.google.com/)
 - Google ADK (Agent Development Kit) installed
 
 ## Installation
 
 1. Clone the repository:
    ```
-   git clone https://github.com/yourusername/resume-optimizer.git
-   cd resume-optimizer
+   git clone https://github.com/sairamcharan9/resume_agentic_adk.git
+   cd resume_agentic_adk
    ```
 
 2. Create and activate a virtual environment (recommended):
@@ -34,8 +34,12 @@ A powerful AI-driven tool that analyzes LaTeX resumes and provides tailored opti
    source venv/bin/activate
    ```
 
-3. Install the required dependencies:
+3. Install Google ADK and other dependencies:
    ```
+   # Install Google ADK
+   pip install -U google-adk
+   
+   # Install other project dependencies
    pip install -r requirements.txt
    ```
 
@@ -43,20 +47,29 @@ A powerful AI-driven tool that analyzes LaTeX resumes and provides tailored opti
    ```
    GOOGLE_API_KEY=your_google_api_key_here
    ```
+   
+5. Initialize the ADK directory (if not already initialized):
+   ```
+   adk init
+   ```
 
 ## Usage
 
 ### Running the Application
 
-1. Start the web server:
+1. Start the ADK web interface:
    ```
-   python main.py
+   adk web
    ```
-   This will launch the application on http://localhost:5001 by default
+   This will launch the Google ADK web interface in your default browser
 
-2. Open your web browser and navigate to http://localhost:5001
+2. In the ADK web interface, select the Resume Optimizer project
 
-3. Follow the on-screen instructions to optimize your resume
+3. Configure the agent with your API key and settings
+
+4. Start a conversation with the Resume Optimizer agent
+
+5. Follow the agent's instructions to optimize your resume
 
 ### Workflow
 
@@ -69,15 +82,18 @@ A powerful AI-driven tool that analyzes LaTeX resumes and provides tailored opti
 ## Project Structure
 
 ```
-resume-optimizer/
-├── main.py                    # Main application entry point
+resume_agentic_adk/
+├── main.py                    # Application entry point (alternative to ADK web)
+├── main.tex                   # Example LaTeX resume template
+├── job_description.txt       # Example job description for testing
 ├── requirements.txt           # Project dependencies
-├── .env                      # Environment variables (you need to create this)
-├── resumeoptimizer/
-│   ├── agent.py              # Definition of the resume optimization agent
-│   ├── tools.py              # Tool functions for resume analysis
-│   └── insturctions.py       # Agent instructions and prompt templates
-├── tests/                    # Test files
+├── .env                      # Environment variables (create this yourself)
+├── resumeoptimizer/           # Core package directory
+│   ├── __init__.py           # Package initialization
+│   ├── agent.py              # ADK agent definition with tools
+│   ├── tools.py              # Tool functions (LaTeX parsing & analysis)
+│   └── instructions.py       # Agent instructions and prompt templates
+├── .adk/                     # ADK configuration directory (created by ADK init)
 └── README.md                 # This documentation
 ```
 
@@ -87,12 +103,13 @@ resume-optimizer/
 2. Run the application and instruct the agent to find your resume
 3. The agent will automatically extract experience information and provide optimization suggestions
 
-## Example Commands
+## Example Conversations with the Agent
 
-- "Find my resume in the current directory"
-- "Optimize my resume for a data science position"
-- "Extract the experience from my resume"
-- "Suggest improvements for my work experience bullet points"
+- "Hello, I'd like to optimize my resume for a machine learning engineer position"
+- "Please analyze my LaTeX resume in the current directory"
+- "Can you extract the experience sections from my resume?"
+- "How can I improve my work experience descriptions to match this job description?"
+- "What keywords should I add to my resume to pass ATS screening?"
 
 ## Troubleshooting
 
