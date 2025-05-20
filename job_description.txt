@@ -1,32 +1,33 @@
-**Job Title:** Machine Learning Engineer
+    **Job Title:** Machine Learning Engineer
 
-**Experience Level:** 3+ years
+    **Experience Level:** 3+ years
 
-**Responsibilities:**
+    **Responsibilities:**
 
-* Design, develop, and deploy machine learning models to solve complex business problems.
-* Collaborate with cross-functional teams (product, engineering, data science) to define project scope, data requirements, and model evaluation metrics.
-* Work with large datasets, perform data cleaning, feature engineering, and exploratory data analysis (EDA).
-* Select appropriate machine learning algorithms and techniques based on project requirements.
-* Implement and optimize machine learning models using various frameworks (e.g., TensorFlow, PyTorch, scikit-learn).
-* Develop and maintain robust, scalable, and well-documented code.
-* Monitor model performance and identify areas for improvement.
-* Stay up-to-date with the latest advancements in machine learning and apply them to improve model accuracy and efficiency.
-* Communicate technical concepts effectively to both technical and non-technical audiences.
+    * Design, develop, and deploy machine learning models to solve complex business problems.
+    * Collaborate with cross-functional teams (product, engineering, data science) to define project scope, data requirements, and model evaluation metrics.
+    * Work with large datasets, perform data cleaning, feature engineering, and exploratory data analysis (EDA).
+    * Select appropriate machine learning algorithms and techniques based on project requirements.
+    * Implement and optimize machine learning models using various frameworks (e.g., TensorFlow, PyTorch, scikit-learn).
+    * Develop and maintain robust, scalable, and well-documented code.
+    * Monitor model performance and identify areas for improvement.
+    * Stay up-to-date with the latest advancements in machine learning and apply them to improve model accuracy and efficiency.
+    * Communicate technical concepts effectively to both technical and non-technical audiences.
 
-**Qualifications:**
+    **Qualifications:**
 
-* Bachelor's or Master's degree in Computer Science, Engineering, Statistics, or a related field.
-* 3+ years of experience in machine learning engineering.
-* Strong programming skills in Python or other relevant languages.
-* Experience with various machine learning algorithms (e.g., regression, classification, clustering, deep learning).
-* Experience with machine learning frameworks (e.g., TensorFlow, PyTorch, scikit-learn).
-* Experience with cloud platforms (e.g., AWS, Google Cloud, Azure) is a plus.
-* Experience with big data technologies (e.g., Spark, Hadoop) is a plus.
-* Excellent communication, teamwork, and problem-solving skills.
+    * Bachelor's or Master's degree in Computer Science, Engineering, Statistics, or a related field.
+    * 3+ years of experience in machine learning engineering.
+    * Strong programming skills in Python or other relevant languages.
+    * Experience with various machine learning algorithms (e.g., regression, classification, clustering, deep learning).
+    * Experience with machine learning frameworks (e.g., TensorFlow, PyTorch, scikit-learn).
+    * Experience with cloud platforms (e.g., AWS, Google Cloud, Azure) is a plus.
+    * Experience with big data technologies (e.g., Spark, Hadoop) is a plus.
+    * Excellent communication, teamwork, and problem-solving skills.
 
-**Bonus Points:**
+    **Bonus Points:**
 
-* Experience with specific ML models relevant to the company's industry (e.g., time series forecasting, NLP, computer vision).
-* Contributions to open-source projects or publications in machine learning.
-* Experience with MLOps practices (CI/CD, model monitoring, etc.).
+    * Experience with specific ML models relevant to the company's industry (e.g., time series forecasting, NLP, computer vision).
+    * Contributions to open-source projects or publications in machine learning.
+    * Experience with MLOps practices (CI/CD, model monitoring, etc.).
+    
