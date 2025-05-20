@@ -2,7 +2,10 @@ import os
 import sys
 from dotenv import load_dotenv
 import google.generativeai as genai
-from resumeoptimizer.agent import root_agent
+
+# Import our agent components
+from resumeoptimizer.agent import call_agent, session, runner, USER_ID, SESSION_ID
+from resumeoptimizer.instructions import SIMPLE_INSTRUCTIONS
 
 # Load environment variables from .env file
 load_dotenv()
@@ -40,14 +43,40 @@ else:
     print("Please create a .env file with your API key or set it as an environment variable.")
     sys.exit(1)
 
-# This file makes the root_agent available to the ADK web interface
-# The root_agent has been simplified to use just two tools:
-# 1. greet_agent - Welcomes users to the service
-# 2. resume_parser - Parses LaTeX resume content and provides optimization suggestions
+def interactive_session():
+    """Run an interactive console session with the Resume Optimizer agent"""
+    print("\nWelcome to the Resume Optimizer interactive console!")
+    print("Type 'exit' to quit")
+    
+    # Interactive loop
+    while True:
+        # Get user input
+        user_input = input("\nYou: ")
+        
+        # Check for exit command
+        if user_input.lower() == 'exit':
+            print("Goodbye!")
+            break
+            
+        # Process the message through our call_agent function
+        response = call_agent(user_input)
+
+# Main entry point
 if __name__ == "__main__":
-    print("Resume Optimizer agent initialized with the following tools:")
-    print("- greet_agent: Friendly welcome and introduction to the service")
-    print("- resume_parser: Parses LaTeX resume content and suggests improvements")
-    print("\nRun 'python -m google.adk.cli web' to start the web interface.")
-    print("Then visit http://localhost:8000 to interact with the agent.")
+    print("Resume Optimizer initialized with sequential workflow:")
+    print("1. Greeting and welcome")
+    print("2. Resume processing")
+    print("3. Job analysis")
+    print("4. Match scoring and optimization")
+    print("\nOptions:")
+    print("1. Run 'python -m google.adk.cli web' to start the web interface")
+    print("2. Run this script directly to use the interactive console")
+    
+    # Check if user wants to run in interactive mode
+    user_choice = input("Would you like to start the interactive console? (y/n): ")
+    if user_choice.lower().startswith('y'):
+        interactive_session()
+    else:
+        print("\nTo use the web interface, run 'python -m google.adk.cli web'")
+        print("Then visit http://localhost:8000 to interact with the agent.")
 

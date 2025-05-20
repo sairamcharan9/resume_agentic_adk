@@ -1,77 +1,162 @@
+from google.adk.agents import Agent, LlmAgent, SequentialAgent
+from google.adk.tools import agent_tool, google_search
 
-from google.adk.agents import Agent, LlmAgent
-from google.adk.tools import agent_tool
-
-from resumeoptimizer.tools import extract_experience, get_latex_content
-from resumeoptimizer.insturctions import MANAGER_INSTRUCTIONS
+from .instructions import (
+    MANAGER_INSTRUCTIONS, 
+    GREET_INSTRUCTIONS, 
+    LATEX_INSTRUCTIONS, 
+    JOB_ANALYZER_INSTRUCTIONS, 
+    RESUME_ANALYZER_INSTRUCTIONS,
+    RESUME_OPTIMIZER_INSTRUCTIONS,
+    SIMPLE_INSTRUCTIONS
+)
 
 # Use standard model name as string
 # ADK 0.5.0 doesn't support GeminiModel class, so we use string model identifier
 GEMINI_MODEL = "gemini-1.5-flash"  # Model name as string
 
-# Create enhanced instructions
-simplified_instructions = """
-You are the Resume Optimizer AI, a sophisticated system that intelligently tailors resumes to specific job postings. Your primary goal is to help users present their qualifications effectively by aligning their resume content with job requirements.
-
-You have access to these specialized tools:
-
-1. 'greet_agent': A friendly greeter that welcomes users to the Resume Optimizer service.
-   Use this when: First interacting with a user or starting a new optimization session.
-   Output: A professional welcome message explaining the service.
-
-2. 'extract_experience': Extracts experience sections from LaTeX resume content.
-   Input: LaTeX resume content provided directly by the user.
-   Output: Structured JSON containing all experience entries with position, company, date, location, and bullet points.
-   LaTeX Handling: Parses LaTeX resume formats to identify and extract detailed work experience information.
-
-3. 'get_latex_content': Finds and reads LaTeX resume files from a directory.
-   Input: Directory path and optional specific file name.
-   Output: JSON containing content of all found LaTeX files.
-   Usage: Useful for scanning directories for resume files and retrieving their content for analysis.
-
-OPTIMIZATION WORKFLOW:
-1. GREETING: Welcome the user with the greet_agent tool.
-2. FIND RESUME FILES: Use get_latex_content to locate LaTeX resume files in the user's directory.
-3. EXTRACT EXPERIENCE: Process the LaTeX resume content using extract_experience to identify work history.
-4. ANALYZE EXPERIENCE: Review each position to determine relevance to target job roles.
-5. OPTIMIZE CONTENT: Suggest improvements to experience descriptions including:
-   - Adding quantifiable achievements
-   - Emphasizing leadership and impact
-   - Highlighting transferable skills
-   - Using industry-specific terminology
-   - Aligning with job description keywords
-KEY PRINCIPLES:
-- Maintain truthfulness and accuracy in all suggestions
-- Respect the original structure while suggesting content improvements
-- Focus on highlighting relevant experience rather than fabricating qualifications
-- Use industry-specific terminology appropriate to the target job
-- Emphasize quantifiable achievements with specific metrics when possible
-- Tailor each resume section to directly address key job requirements
-- Provide specific, actionable examples of improved content
-
-As an intelligent system, adapt your guidance to match the specific resume structure, content, and target job description provided by the user.
-"""
-
-# Combine instructions
-full_instructions = MANAGER_INSTRUCTIONS + "\n\n" + simplified_instructions
-
-# Create the greet agent with no tools
+# Create the greeting agent with no tools
 greet_agent = LlmAgent(
     name="greet_agent",
     model=GEMINI_MODEL,
     description="Provides friendly greetings and welcomes users to the Resume Optimizer.",
-    instruction="You are a friendly greeter. Welcome the user to the Resume Optimizer service. Be polite, professional, and encouraging. Explain that this service helps optimize resumes for specific job descriptions."
-    # No tools for this agent
+    instruction=GREET_INSTRUCTIONS
 )
 
-# Wrap the greet agent as a tool for the root agent
-greet_agent_tool = agent_tool.AgentTool(agent=greet_agent)
+# Create the LaTeX processing agent
+latex_agent = LlmAgent(
+    name="latex_agent",
+    model=GEMINI_MODEL,
+    description="Specialized agent for processing LaTeX resumes and extracting structured information.",
+    instruction=LATEX_INSTRUCTIONS
+)
 
-# Create the root agent with the resume_parser tool and greet agent
+# Create the job analyzer agent with Google search
+job_analyzer_agent = LlmAgent(
+    name="job_analyzer_agent",
+    model=GEMINI_MODEL,
+    description="Analyzes job descriptions and researches latest industry and ATS trends.",
+    instruction=JOB_ANALYZER_INSTRUCTIONS,
+    tools=[google_search]
+)
+
+# Create the resume analyzer agent
+resume_analyzer_agent = LlmAgent(
+    name="resume_analyzer_agent",
+    model=GEMINI_MODEL,
+    description="Analyzes resume content against job requirements to identify improvement opportunities.",
+    instruction=RESUME_ANALYZER_INSTRUCTIONS
+)
+
+# Create the resume optimizer agent
+resume_optimizer_agent = LlmAgent(
+    name="resume_optimizer_agent",
+    model=GEMINI_MODEL,
+    description="Enhances specific resume bullet points while preserving structure.",
+    instruction=RESUME_OPTIMIZER_INSTRUCTIONS
+)
+
+# Wrap the agents as tools for the root agent
+greet_agent_tool = agent_tool.AgentTool(agent=greet_agent)
+latex_agent_tool = agent_tool.AgentTool(agent=latex_agent)
+job_analyzer_tool = agent_tool.AgentTool(agent=job_analyzer_agent)
+resume_analyzer_tool = agent_tool.AgentTool(agent=resume_analyzer_agent)
+resume_optimizer_tool = agent_tool.AgentTool(agent=resume_optimizer_agent)
+
+
+
+# Create an optimization workflow using SequentialAgent
+optimization_workflow = SequentialAgent(
+    name="optimization_workflow",
+    sub_agents=[
+        # First analyze the job description
+        LlmAgent(
+            name="job_requirement_analyzer",
+            model=GEMINI_MODEL,
+            instruction="Analyze the job description and extract key requirements. Save insights to 'job_requirements'.",
+            tools=[job_analyzer_tool],
+            output_key="job_requirements"  # Save output to session state for next agent
+        ),
+        
+        # Then analyze the resume against job requirements
+        LlmAgent(
+            name="resume_analyzer",
+            model=GEMINI_MODEL,
+            instruction="Using the job requirements in 'job_requirements', analyze the resume and identify specific bullet points to improve. Preserve structure completely. Save analysis to 'resume_analysis'.",
+            tools=[resume_analyzer_tool],
+            output_key="resume_analysis"  # Save output to session state for next agent
+        ),
+        
+        # Finally optimize the resume while preserving structure
+        LlmAgent(
+            name="resume_enhancer",
+            model=GEMINI_MODEL,
+            instruction="Using the analysis in 'resume_analysis' and job requirements in 'job_requirements', enhance the specific bullet points identified. NEVER change resume structure or number of bullets. Save optimized content to 'optimized_resume'.",
+            tools=[resume_optimizer_tool],
+            output_key="optimized_resume"  # Final output with optimized content
+        )
+    ]
+)
+
+# Create the root agent with all agent tools
 root_agent = Agent(
     name="resume_optimizer",
     model=GEMINI_MODEL,  # Use string model identifier
-    description="Resume Optimizer that uses AI to analyze resumes and suggest improvements to better match job descriptions.",
-    instruction=full_instructions,
-    tools=[greet_agent_tool, extract_experience, get_latex_content]  # Include all three tools for complete workflow
+    description="Resume Optimizer that uses AI to analyze resumes and suggest improvements to better match job descriptions while preserving structure.",
+    instruction=MANAGER_INSTRUCTIONS,
+    tools=[
+        # Resume optimizer core tools
+        greet_agent_tool,
+        latex_agent_tool,
+        job_analyzer_tool,
+        resume_analyzer_tool,
+        resume_optimizer_tool,
+        agent_tool.AgentTool(agent=optimization_workflow),
+    ]
 )
+
+# ---------- Session and Runner Setup ----------
+
+# Import necessary components for session and runner
+from google.adk.sessions import InMemorySessionService
+from google.adk.runners import Runner
+import google.generativeai.types as types
+
+# Constants for session management
+APP_NAME = "resume_optimizer"  # Application name for session management
+USER_ID = "default_user"  # Default user ID
+SESSION_ID = "default_session"  # Default session ID
+
+# Create session service and session
+session_service = InMemorySessionService()
+session = session_service.create_session(app_name=APP_NAME, user_id=USER_ID, session_id=SESSION_ID)
+
+# Initialize the runner with our root agent
+runner = Runner(agent=root_agent, app_name=APP_NAME, session_service=session_service)
+
+
+# Helper function to interact with the agent
+def call_agent(query):
+    """
+    Helper function to call the agent with a query.
+    
+    Args:
+        query: The text query to send to the agent
+        
+    Returns:
+        The agent's final response
+    """
+    # Create content object with the query
+    content = types.Content(role='user', parts=[types.Part(text=query)])
+    
+    # Run the agent with the query
+    events = runner.run(user_id=USER_ID, session_id=SESSION_ID, new_message=content)
+
+    # Process events and extract the final response
+    for event in events:
+        if event.is_final_response():
+            final_response = event.content.parts[0].text
+            print("Agent Response: ", final_response)
+            return final_response
+    
+    return "No response from the agent."

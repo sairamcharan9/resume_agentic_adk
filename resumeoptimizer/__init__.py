@@ -1,5 +1,4 @@
 from . import agent
-from . import tools
-from . import insturctions
+from . import instructions
 
 __version__ = "0.1.0"
